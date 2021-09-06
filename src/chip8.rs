@@ -1,7 +1,7 @@
 use rand::Rng;
 use std::fs;
 
-type Chip8Display = [[u8; 64]; 32];
+pub type Chip8Display = [[u8; 64]; 32];
 
 fn empty_display() -> Chip8Display {
     [[0; 64]; 32]
@@ -22,7 +22,9 @@ pub struct Chip8 {
 
     SP: u8, // Stack pointer
     stack: [u16; 16],
+
     display: Chip8Display,
+    keypad: [bool; 16],
 }
 
 impl Chip8 {
@@ -37,6 +39,7 @@ impl Chip8 {
             SP: 0,
             stack: [0; 16],
             display: empty_display(),
+            keypad: [false; 16],
         }
     }
 
@@ -45,6 +48,15 @@ impl Chip8 {
 
         for i in 0..program.len() {
             self.memory[i + 0x200] = program[i]
+        }
+    }
+
+    fn render(&self) {
+        println!("{:?}", self.display);
+        for x in 0..32 {
+            for y in 0..64 {
+                if self.display[x][y] == 1 {}
+            }
         }
     }
 
@@ -79,6 +91,7 @@ impl Chip8 {
             );
 
             let nnn = opcode & 0x0fff;
+            let n = opcode & 0x000f;
             let x = nibbles.1 as usize;
             let y = nibbles.2 as usize;
             let kk = (opcode & 0x0ff) as u8;
@@ -189,11 +202,24 @@ impl Chip8 {
                     self.next()
                 }
                 // DXYN
-                (0x0d, _, _, _) => self.next(),
+                (0x0d, _, _, _) => {
+                    self.V[0x0f] = 0;
+                    for byte in 0..n {
+                        let y = (self.V[y] as usize + byte as usize) % 32;
+                        for bit in 0..8 {
+                            let x = (self.V[x] as usize + bit) % 64;
+                            let color = (self.memory[(self.I + byte) as usize] >> (7 - bit)) & 1;
+                            self.V[0x0f] |= color & self.display[y][x];
+                            self.display[y][x] ^= color;
+                        }
+                    }
+                    self.next()
+                }
                 // EX9E
-                (0x0e, _, 9, 0x0e) => (),
+                (0x0e, _, 9, 0x0e) => self.skip_if(self.keypad[self.V[x] as usize]),
                 // EXA1
-                (0x0e, _, 0x0a, 1) => (),
+                // This is the next one to work on
+                (0x0e, _, 0x0a, 1) => self.next(),
                 // FX07
                 (0x0f, _, 0, 7) => {
                     self.V[x] = self.DT;
@@ -217,9 +243,17 @@ impl Chip8 {
                     self.next()
                 }
                 // FX29
-                (0x0f, _, 2, 9) => (),
+                (0x0f, _, 2, 9) => {
+                    self.I = self.V[x] as u16 * 5;
+                    self.next()
+                }
                 // FX33
-                (0x0f, _, 3, 3) => {}
+                (0x0f, _, 3, 3) => {
+                    self.memory[self.I as usize] = self.V[x] / 100;
+                    self.memory[(self.I + 1) as usize] = (self.V[x] % 100) / 10;
+                    self.memory[self.I as usize] = self.V[x] % 10;
+                    self.next()
+                }
                 // FX55
                 (0x0f, _, 5, 5) => {
                     for i in 0..x + 1 {
@@ -236,6 +270,7 @@ impl Chip8 {
                 }
                 _ => self.next(),
             }
+            self.render()
         }
     }
 
