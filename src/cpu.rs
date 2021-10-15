@@ -53,6 +53,7 @@ impl Chip8 {
 
     pub fn load_program(&mut self, path: &str) {
         let program = fs::read(path).expect("Failed to read file");
+        println!("{:x?}", program);
 
         for i in 0..program.len() {
             self.memory[i + 0x200] = program[i]
@@ -222,9 +223,10 @@ impl Chip8 {
                 self.V[x] = self.V[x].wrapping_sub(self.V[y]);
                 self.next()
             }
+            // needs work
             // 8XY6
             (8, _, _, 6) => {
-                self.V[0x0f] = if self.V[x] & 1 == 1 { 1 } else { 0 };
+                self.V[0x0f] = self.V[x] & 0x1;
                 self.V[x] /= 2;
                 self.next()
             }
@@ -314,7 +316,7 @@ impl Chip8 {
             (0x0f, _, 3, 3) => {
                 self.memory[self.I as usize] = self.V[x] / 100;
                 self.memory[(self.I + 1) as usize] = (self.V[x] % 100) / 10;
-                self.memory[self.I as usize] = self.V[x] % 10;
+                self.memory[(self.I + 2) as usize] = self.V[x] % 10;
                 self.next()
             }
             // FX55
