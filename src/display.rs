@@ -9,6 +9,6 @@ pub const CELL_HEIGHT: usize = WINDOW_HEIGHT / NUM_COLS;
 
 pub type Grid = [[u8; NUM_COLS]; NUM_ROWS];
 
-pub fn empty_grid() -> Grid {
+pub const fn empty_grid() -> Grid {
     [[0; NUM_COLS]; NUM_ROWS]
 }

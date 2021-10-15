@@ -34,9 +34,8 @@ pub struct Chip8 {
 impl Chip8 {
     pub fn new() -> Self {
         let mut memory = [0; 4096];
-        for i in 0..FONT_SET.len() {
-            memory[i] = FONT_SET[i];
-        }
+        memory[..FONT_SET.len()].clone_from_slice(&FONT_SET[..]);
+
         Self {
             PC: 0x200,
             memory,
@@ -55,9 +54,7 @@ impl Chip8 {
         let program = fs::read(path).expect("Failed to read file");
         println!("{:x?}", program);
 
-        for i in 0..program.len() {
-            self.memory[i + 0x200] = program[i]
-        }
+        self.memory[512..(program.len() + 512)].clone_from_slice(&program[..]);
     }
 
     pub fn run(&mut self) {
@@ -136,10 +133,10 @@ impl Chip8 {
         // Example:
         // 10000 >> 4 == 1
         let nibbles = (
-            (opcode & 0xf000) >> 12 as u8,
-            (opcode & 0x0f00) >> 8 as u8,
-            (opcode & 0x00f0) >> 4 as u8,
-            (opcode & 0x000f) as u8,
+            (opcode & 0xf000) >> 12,
+            (opcode & 0x0f00) >> 8,
+            (opcode & 0x00f0) >> 4,
+            (opcode & 0x000f),
         );
 
         let nnn = opcode & 0x0fff;
@@ -210,8 +207,7 @@ impl Chip8 {
             // 8XY4
             (8, _, _, 4) => {
                 let result = self.V[x] as u16 + self.V[y] as u16;
-                println!("result: {}", result);
-                self.V[x] = (result & 0x0000ffff) as u8;
+                self.V[x] = result as u8;
                 // Vf is carry
                 // Set it to 1 if Vx overflows 8bits
                 self.V[0x0f] = if result > 255 { 1 } else { 0 };
@@ -286,7 +282,7 @@ impl Chip8 {
             // FX0A
             (0x0f, _, 0, 0x0a) => {
                 loop {
-                    if self.keypad.iter().filter(|&&key| key == false).count() > 0 {
+                    if self.keypad.iter().filter(|&&key| !key).count() > 0 {
                         break;
                     }
                 }
