@@ -17,4 +17,5 @@ fn main() {
     } else {
         eprintln!("usage: {prog} <rom path>");
     }
+
 }
