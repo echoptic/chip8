@@ -91,7 +91,7 @@ impl Chip8 {
 
     pub fn new() -> Self {
         let mut memory = [0; 4096];
-        memory[..FONT_SET.len()].clone_from_slice(&FONT_SET[..]);
+        memory[..FONT_SET.len()].clone_from_slice(&FONT_SET);
 
         Self {
             pc: Self::START_ADDR as u16,
@@ -114,7 +114,7 @@ impl Chip8 {
     }
 
     pub fn load(&mut self, rom: &[u8]) {
-        self.memory[Self::START_ADDR..(Self::START_ADDR + rom.len())].clone_from_slice(&rom[..]);
+        self.memory[Self::START_ADDR..(Self::START_ADDR + rom.len())].clone_from_slice(rom);
     }
 
     pub fn run(&mut self) {
@@ -200,8 +200,6 @@ impl Chip8 {
         let opcode = (self.memory[self.pc as usize] as u16) << 8
             | self.memory[(self.pc + 1) as usize] as u16;
 
-        // println!("OPCODE: {opcode:4x}, PC: {}", self.pc);
-
         let nibbles = (
             (opcode & 0xf000) >> 12,
             (opcode & 0x0f00) >> 8,
@@ -250,7 +248,7 @@ impl Chip8 {
             (0xf, _, 3, 3) => self.inst_fx33(),
             (0xf, _, 5, 5) => self.inst_fx55(),
             (0xf, _, 6, 5) => self.inst_fx65(),
-            _ => panic!("INVALID OPCODE: {opcode:4x}"),
+            _ => panic!("invalid opcode: {opcode:4x}"),
         }
     }
 
@@ -375,18 +373,14 @@ impl Chip8 {
         self.v[self.x] = result as u8;
         // Vf is carry
         // Set it to 1 if Vx overflows 8bits
-        self.v[0xf] = if result > u8::MAX as u16 { 1 } else { 0 };
+        self.v[0xf] = u8::from(result > u8::MAX as u16);
         self.next_opcode();
     }
 
     /// SUB Vx, Vy
     #[inline]
     fn inst_8xy5(&mut self) {
-        self.v[0xf] = if self.v[self.x] > self.v[self.y] {
-            1
-        } else {
-            0
-        };
+        self.v[0xf] = u8::from(self.v[self.x] > self.v[self.y]);
         self.v[self.x] = self.v[self.x].wrapping_sub(self.v[self.y]);
         self.next_opcode();
     }
@@ -402,11 +396,7 @@ impl Chip8 {
     /// SUBN Vx, Vy
     #[inline]
     fn inst_8xy7(&mut self) {
-        self.v[0xf] = if self.v[self.y] > self.v[self.x] {
-            1
-        } else {
-            0
-        };
+        self.v[0xf] = u8::from(self.v[self.y] > self.v[self.x]);
         self.v[self.x] = self.v[self.y].wrapping_sub(self.v[self.x]);
         self.next_opcode();
     }

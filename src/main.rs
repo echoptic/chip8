@@ -5,17 +5,12 @@ use std::{env, fs};
 use chip8::Chip8;
 
 fn main() {
-    // TODO: rom `HIDDEN` is not working properly
-    // TODO: set all keybinds
-    let mut args = env::args();
-    let prog = args.next().unwrap();
-    if let Some(path) = args.next() {
-        let mut ch8 = Chip8::new();
-        let game = fs::read(path).expect("invalid path");
-        ch8.load(&game);
-        ch8.run();
-    } else {
-        eprintln!("usage: {prog} <rom path>");
-    }
-
+    let path = env::args()
+        .skip(1)
+        .next()
+        .unwrap_or("roms/INVADERS".to_string());
+    let mut ch8 = Chip8::new();
+    let rom = fs::read(path).expect("invalid path");
+    ch8.load(&rom);
+    ch8.run();
 }
