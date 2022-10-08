@@ -6,9 +6,9 @@ edition = "2021"
 [dependencies]
 rand = "0.8.0"
 
-[target.'cfg(unix)'.dependencies.sdl2]
-version = "*"
+[target.'cfg(not(windows))'.dependencies.sdl2]
+version = "0.35"
 
 [target.'cfg(windows)'.dependencies.sdl2]
-version = "*"
+version = "0.35"
 features = ["bundled"]
